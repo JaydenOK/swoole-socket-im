@@ -5,6 +5,7 @@ namespace module\server;
 
 use Exception;
 use InvalidArgumentException;
+use module\lib\Dispatcher;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoole\WebSocket\Frame;
@@ -28,7 +29,7 @@ class SocketServerManager
      * @var int
      */
     private $port;
-    private $processPrefix = 'game-socket-';
+    private $processPrefix = 'socket-im-';
     private $setting = ['worker_num' => 2, 'enable_coroutine' => true];
     /**
      * @var bool
@@ -76,6 +77,7 @@ class SocketServerManager
         $this->bindEvent(self::EVENT_CLOSE, [$this, 'onClose']);
         $this->bindEvent(self::EVENT_REQUEST, [$this, 'onRequest']);
         //$this->bindEvent(self::EVENT_DISCONNECT, [$this, 'onDisconnect']);  // swoole > 4.7
+        $this->renameProcessName($this->processPrefix . $this->port);
         $this->startServer();
     }
 
@@ -156,18 +158,25 @@ class SocketServerManager
     //如果想通过接收 HTTP 触发所有 WebSocket 的推送，需要注意作用域的问题，面向过程请使用 global 对 WebSocket\Server 进行引用，面向对象可以把 WebSocket\Server 设置成一个成员属性
     public function onRequest(Request $request, Response $response)
     {
-        echo 'onRequest:';
-        $post = json_encode($request->post, JSON_UNESCAPED_UNICODE);
-        echo $post . PHP_EOL;
-        return $response->end($post);
+        try {
+            $dispatcher = new Dispatcher($this->server, $request, $response);
+            $data = $dispatcher->dispatch();
+            $return = ['code' => 0, 'message' => 'success', 'data' => $data];
+        } catch (Exception $e) {
+            $return = ['code' => 99, 'message' => $e->getMessage(), 'data' => []];
+        }
+        $response->header('Content-Type', 'application/json;charset=utf-8');
+        $response->end(json_encode($return));
+        return true;
+        //广播
         // 接收http请求从get获取message参数的值，给用户推送
         // $this->server->connections 遍历所有websocket连接用户的fd，给所有用户推送
-        foreach ($this->server->connections as $fd) {
-            // 需要先判断是否是正确的websocket连接，否则有可能会push失败
-            if ($this->server->isEstablished($fd)) {
-                $this->server->push($fd, $request->get['message']);
-            }
-        }
+//        foreach ($this->server->connections as $fd) {
+//            // 需要先判断是否是正确的websocket连接，否则有可能会push失败
+//            if ($this->server->isEstablished($fd)) {
+//                $this->server->push($fd, $request->get['message']);
+//            }
+//        }
     }
 
     //socket关闭事件

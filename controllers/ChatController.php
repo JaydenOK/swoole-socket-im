@@ -2,7 +2,7 @@
 
 namespace module\controllers;
 
-class ChatController
+class Chat extends Controller
 {
 
 }
