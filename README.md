@@ -1,5 +1,5 @@
-## swoole-coroutine-mysql-pool-task
-game-socket 游戏聊天项目
+## swoole-socket
+swoole-socket 聊天项目
 
 #### 功能逻辑
 ```text

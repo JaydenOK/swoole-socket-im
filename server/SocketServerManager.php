@@ -12,6 +12,7 @@ use Swoole\WebSocket\Server;
 
 class SocketServerManager
 {
+
     const EVENT_OPEN = 'open';
     const EVENT_HANDSHAKE = 'handshake';
     const EVENT_MESSAGE = 'message';
@@ -24,7 +25,7 @@ class SocketServerManager
      */
     protected $server;
     /**
-     * @var int|string
+     * @var int
      */
     private $port;
     private $processPrefix = 'game-socket-';
@@ -42,7 +43,7 @@ class SocketServerManager
     {
         try {
             $cmd = isset($argv[1]) ? (string)$argv[1] : 'status';
-            $this->port = isset($argv[2]) ? (string)$argv[2] : 9501;
+            $this->port = isset($argv[2]) ? (int)$argv[2] : 9501;
             $this->daemon = isset($argv[3]) && (in_array($argv[3], ['daemon', 'd', '-d'])) ? true : false;
             if (empty($this->port) || empty($cmd)) {
                 throw new InvalidArgumentException('params error');
@@ -72,10 +73,20 @@ class SocketServerManager
         $this->bindEvent(self::EVENT_HANDSHAKE, [$this, 'onHandShake']);
         $this->bindEvent(self::EVENT_OPEN, [$this, 'onOpen']);
         $this->bindEvent(self::EVENT_MESSAGE, [$this, 'onMessage']);
-        $this->bindEvent(self::EVENT_REQUEST, [$this, 'onRequest']);
         $this->bindEvent(self::EVENT_CLOSE, [$this, 'onClose']);
-        $this->bindEvent(self::EVENT_DISCONNECT, [$this, 'onDisconnect']);
+        $this->bindEvent(self::EVENT_REQUEST, [$this, 'onRequest']);
+        //$this->bindEvent(self::EVENT_DISCONNECT, [$this, 'onDisconnect']);  // swoole > 4.7
         $this->startServer();
+    }
+
+    private function bindEvent($event, callable $callback)
+    {
+        $this->server->on($event, $callback);
+    }
+
+    private function startServer()
+    {
+        $this->server->start();
     }
 
     //校验http登录的用户uid或者access_token解密出来的uid与fd，绑定到socket服务，redis存储
@@ -121,7 +132,7 @@ class SocketServerManager
 
     //当 WebSocket 客户端与服务器建立连接并完成握手后会回调此函数。设置 onHandShake 回调函数后不会再触发 onOpen 事件
     //onOpen 事件函数中可以调用 push 向客户端发送数据或者调用 close 关闭连接
-    public function onOpen(Request $request, Response $response)
+    public function onOpen(Server $server, Request $request)
     {
         echo "onOpen: fd{$request->fd}\n";
     }
@@ -143,8 +154,12 @@ class SocketServerManager
     //设置了 onRequest 回调，WebSocket\Server 也可以同时作为 HTTP 服务器
     //未设置 onRequest 回调，WebSocket\Server 收到 HTTP 请求后会返回 HTTP 400 错误页面
     //如果想通过接收 HTTP 触发所有 WebSocket 的推送，需要注意作用域的问题，面向过程请使用 global 对 WebSocket\Server 进行引用，面向对象可以把 WebSocket\Server 设置成一个成员属性
-    public function onRequest(\Swoole\Http\Request $request, \Swoole\Http\Response $response)
+    public function onRequest(Request $request, Response $response)
     {
+        echo 'onRequest:';
+        $post = json_encode($request->post, JSON_UNESCAPED_UNICODE);
+        echo $post . PHP_EOL;
+        return $response->end($post);
         // 接收http请求从get获取message参数的值，给用户推送
         // $this->server->connections 遍历所有websocket连接用户的fd，给所有用户推送
         foreach ($this->server->connections as $fd) {
@@ -190,15 +205,6 @@ class SocketServerManager
         $this->server->set(array_merge($this->setting, $setting));
     }
 
-    private function bindEvent($event, callable $callback)
-    {
-        $this->server->on($event, $callback);
-    }
-
-    private function startServer()
-    {
-        $this->server->start();
-    }
 
     private function logMessage($logData)
     {
