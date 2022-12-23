@@ -67,9 +67,10 @@ CREATE TABLE `yb_chat_message` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `uid` varchar(50) NOT NULL DEFAULT '',
   `to_uid` varchar(50) NOT NULL DEFAULT '',
+  `chat_id` varchar(50) NOT NULL DEFAULT '',
   `chat_type` varchar(50) NOT NULL DEFAULT '',
   `msg_type` varchar(50) NOT NULL DEFAULT '',
-  `content` varchar(1000) NOT NULL DEFAULT '',
+  `msg` varchar(1000) NOT NULL DEFAULT '',
   `create_time` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='chat_message';

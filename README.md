@@ -1,5 +1,5 @@
 ## swoole-socket
-swoole-socket 聊天项目
+swoole socket im 聊天项目模块，普通单聊，店铺客服，群聊，发公告信息
 
 #### 功能逻辑
 ```text
@@ -19,6 +19,7 @@ php service.php start
 
 2.1, http服务注册账号获取access_token: 
 curl -X POST -d "username=a&password=123456" http://192.168.92.208:9501/user/register
+
 2.2, 登录获取access_token
 curl -X POST -d "username=a&password=123456" http://192.168.92.208:9501/user/login 
 
@@ -30,9 +31,11 @@ ws://192.168.92.208:9501?access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc
     "chat_type":1,
     "msg_type":"text",
     "msg_id":"",
+    "chat_id":"",
     "to_uid":2,
-    "content":"hello，胡"
+    "msg":"hello"
 }
+
 
 
 ```

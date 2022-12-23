@@ -8,13 +8,30 @@ use module\lib\MysqliDb;
 class Model
 {
     /**
+     * 共用DB
      * @var MysqliDb
      */
     protected static $db;
+    /**
+     * @var []static
+     */
+    protected static $models;
 
-    public function __construct()
+    public function __construct($className = __CLASS__)
     {
         self::getDb();
+    }
+
+    /**
+     * @param string $className
+     * @return static
+     */
+    public static function model($className = __CLASS__)
+    {
+        if (!isset(self::$models[$className])) {
+            self::$models[$className] = new static($className);
+        }
+        return self::$models[$className];
     }
 
     public static function getDb()
@@ -24,6 +41,14 @@ class Model
             self::$db = $mysqliClient->getQuery();
         }
         return self::$db;
+    }
+
+    public function closeDb()
+    {
+        if (self::$db !== null) {
+            self::$db->disconnect();
+            self::$db = null;
+        }
     }
 
     public function tableName()

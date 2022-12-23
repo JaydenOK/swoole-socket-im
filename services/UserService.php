@@ -18,12 +18,20 @@ class UserService
             echo 'token expire';
             return false;
         }
-        $user = (new UserModel())->getOne(['uid' => $decodeData['uid']]);
+        $userModel = new UserModel();
+        $user = $userModel->getOne(['uid' => $decodeData['uid']]);
         if (empty($user)) {
             echo 'user not found:' . $decodeData['uid'];
             return false;
         }
+        $userModel->closeDb();
         return $decodeData['uid'];
+    }
+
+    public function getUser($uid)
+    {
+        $user = UserModel::model()->getOne(['uid' => $uid]);
+        return $user;
     }
 
 }

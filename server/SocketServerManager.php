@@ -10,6 +10,7 @@ use module\services\SocketService;
 use module\services\UserService;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
+use Swoole\Process;
 use Swoole\WebSocket\Frame;
 use Swoole\WebSocket\Server;
 
@@ -132,7 +133,7 @@ class SocketServerManager
             return false;
         }
         //XazMS4NAEMiMcWyNqFRJTw==
-        echo 'onHandShake, fd:' . $request->fd . PHP_EOL;
+        echo 'onHandShake, fd:' . $request->fd . ', uid:' . $uid . PHP_EOL;
         $key = base64_encode(sha1($request->header['sec-websocket-key'] . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11', true));
         $headers = [
             'Upgrade' => 'websocket',
@@ -177,8 +178,7 @@ class SocketServerManager
                 if (json_last_error() !== JSON_ERROR_NONE) {
                     return $server->push($frame->fd, "error data format");
                 }
-                $socketService = new SocketService();
-                $data = $socketService->message($server, $frame->fd, $frame->data);
+                $data = (new SocketService())->message($server, $frame->fd, $frame->data);
                 $return = ['code' => 200, 'message' => 'success', 'data' => $data];
             } catch (Exception $e) {
                 $return = ['code' => 201, 'message' => 'success', 'data' => []];
@@ -287,7 +287,8 @@ class SocketServerManager
     //用户websocket握手验证
     private function authUser(string $accessToken)
     {
-        return (new UserService())->authUser($accessToken);
+        $userService = new UserService();
+        return $userService->authUser($accessToken);
     }
 
     private function handleUserAndFd($uid, $fd)

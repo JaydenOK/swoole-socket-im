@@ -2,12 +2,12 @@
 
 namespace module\models;
 
-class UserModel extends Model
+class ChatMessageModel extends Model
 {
 
     public function tableName()
     {
-        return 'yb_user';
+        return 'yb_chat_message';
     }
 
     /**
