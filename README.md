@@ -15,7 +15,8 @@ swoole socket im 聊天项目，单聊，群聊，店铺客服，发公告广播
 
 ```shell script
 1, 启动服务: 
-php service.php start
+php service.php start 9501
+php service.php start 9501 -d (守护进程启动)
 
 2.1, http服务注册账号: 
 curl -X POST -d "username=a&password=123456" http://192.168.92.208:9501/user/register

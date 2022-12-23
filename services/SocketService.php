@@ -101,6 +101,12 @@ class SocketService
             case ChatModel::CHAT_TYPE_SINGLE:
                 $data = $this->sendSingleChat($server, $chatType, $uid, $toUid, $chatId, $dataArr);
                 break;
+            case ChatModel::CHAT_TYPE_SERVICE:
+                $data = $this->sendServiceChat($server, $chatType, $uid, $toUid, $chatId, $dataArr);
+                break;
+            case ChatModel::CHAT_TYPE_GROUP:
+                $data = $this->sendGroupChat($server, $chatType, $uid, $toUid, $chatId, $dataArr);
+                break;
             default:
                 throw new \Exception('unknown chat type');
                 break;
@@ -200,6 +206,16 @@ class SocketService
         $toChat = ChatModel::model()->getOne(['chat_id' => $chatId, 'uid' => $toUid, 'to_uid' => $uid]);
         $data['unread'] = $toChat['unread'] + 1;
         ChatModel::model()->saveData($data, ['chat_id' => $chatId, 'uid' => $toUid, 'to_uid' => $uid]);
+    }
+
+    private function sendServiceChat(Server $server, int $chatType, $uid, int $toUid, string $chatId, array $dataArr)
+    {
+        return [];
+    }
+
+    private function sendGroupChat(Server $server, int $chatType, $uid, int $toUid, string $chatId, array $dataArr)
+    {
+        return [];
     }
 
 
