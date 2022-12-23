@@ -78,17 +78,13 @@ class SocketService
     /**
      * @param Server $server
      * @param $fd string  发送人描述符
-     * @param $frameData string 定义交互数据格式
+     * @param $dataArr array 定义交互数据格式
      * @return array
      * @throws \Exception
      */
-    public function message(Server $server, $fd, $frameData)
+    public function message(Server $server, $fd, $dataArr)
     {
         //定义拉数据格式：{"chat_type":1,"msg_type":"text","msg_id":"","chat_id":"","to_uid":2,"msg":"hello"}
-        $dataArr = @json_decode($frameData, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new \Exception('data format error');
-        }
         $uid = $this->redisGetFd($fd);
         $toUid = $dataArr['to_uid'] ?? 0;
         $chatId = $dataArr['chat_id'] ?? '';

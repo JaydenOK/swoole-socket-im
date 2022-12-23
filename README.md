@@ -1,5 +1,5 @@
 ## swoole-socket
-swoole socket im 聊天项目模块，普通单聊，店铺客服，群聊，发公告信息
+swoole socket im 聊天项目，单聊，群聊，店铺客服，发公告信息
 
 #### 功能逻辑
 ```text

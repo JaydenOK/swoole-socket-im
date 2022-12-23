@@ -176,9 +176,9 @@ class SocketServerManager
             try {
                 $dataArr = @json_decode($frame->data, true);
                 if (json_last_error() !== JSON_ERROR_NONE) {
-                    return $server->push($frame->fd, "error data format");
+                    throw new Exception("error data format");
                 }
-                $data = (new SocketService())->message($server, $frame->fd, $frame->data);
+                $data = (new SocketService())->message($server, $frame->fd, $dataArr);
                 $return = ['code' => 200, 'message' => 'success', 'data' => $data];
             } catch (Exception $e) {
                 $return = ['code' => 201, 'message' => 'success', 'data' => []];
