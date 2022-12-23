@@ -14,12 +14,25 @@ swoole-socket 聊天项目
 #### 测试结果
 
 ```shell script
-1, 启动: 
+1, 启动服务: 
 php service.php start
 
-2, http服务注册账号获取access_token: 
-http://192.168.92.208:9501/user/register
+2.1, http服务注册账号获取access_token: 
+curl -X POST -d "username=a&password=123456" http://192.168.92.208:9501/user/register
+2.2, 登录获取access_token
+curl -X POST -d "username=a&password=123456" http://192.168.92.208:9501/user/login 
 
-3, 携带access_token连接websocket: 
-ws://192.168.92.208:9501
+3, 连接websocket: 
+ws://192.168.92.208:9501?access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJpbV9zZXJ2ZXIiLCJpYXQiOjE2NzE2OTY4NjIsImV4cCI6ODY0MDAsInVpZCI6Miwic2NvcGVzIjpbXX0.yjjVXII1S_HXv2xpZUhT79onfb3q2ijR0lAWgeVVCBA
+
+4, 发送socket消息
+{
+    "chat_type":1,
+    "msg_type":"text",
+    "msg_id":"",
+    "to_uid":2,
+    "content":"hello，胡"
+}
+
+
 ```
