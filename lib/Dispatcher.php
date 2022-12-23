@@ -64,7 +64,7 @@ class Dispatcher
         if (!method_exists($this->className, $this->action)) {
             throw new \Exception("NOT FOUND");
         }
-        $controller = new $this->className($this->request->get, $this->request->post, $this->request->rawContent(), $this->request->header);
+        $controller = new $this->className($this->server, $this->request->get, $this->request->post, $this->request->rawContent(), $this->request->header);
         $result = call_user_func_array([$controller, $this->action], []);
         return $result;
     }
