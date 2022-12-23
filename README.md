@@ -39,4 +39,5 @@ ws://192.168.92.208:9501?access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc
 5, 发送系统广播消息
 curl -X POST -d "data=这是广播消息abc123" http://192.168.92.208:9501/message/sendPublicMessage
 
+
 ```
