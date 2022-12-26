@@ -12,16 +12,17 @@ class UserService
         $jwt = new JWT('key', 'HS256', 86400);
         $decodeData = $jwt->decode($accessToken, false);
         if (!isset($decodeData['uid'], $decodeData['iat'], $decodeData['exp'])) {
+            echo 'token parse failure' . PHP_EOL;
             return false;
         }
         if ($decodeData['iat'] + $decodeData['exp'] < time()) {
-            echo 'token expire';
+            echo 'token expire' . PHP_EOL;
             return false;
         }
         $userModel = new UserModel();
         $user = $userModel->getOne(['uid' => $decodeData['uid']]);
         if (empty($user)) {
-            echo 'user not found:' . $decodeData['uid'];
+            echo 'user not found:' . $decodeData['uid'] . PHP_EOL;
             return false;
         }
         $userModel->closeDb();

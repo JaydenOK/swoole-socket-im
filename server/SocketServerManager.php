@@ -24,6 +24,9 @@ class SocketServerManager
     const EVENT_CLOSE = 'close';
     const EVENT_DISCONNECT = 'disconnect';
 
+    //WebSocket协议规定KEY
+    const SIGN_KEY = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
+
     /**
      * @var Server
      */
@@ -116,34 +119,36 @@ class SocketServerManager
         //验证access_token
         $accessToken = $request->get['access_token'] ?? '';
         if (empty($accessToken)) {
-            $response->end('handshake fail');
+            $response->status(401);
+            $response->header('message', 'invalid token');
             return false;
         }
         $uid = $this->authUser($accessToken);
         if (empty($uid)) {
-            $response->end('auth fail');
+            $response->status(401);
+            $response->header('message', 'auth fail');
             return false;
         }
+        //处理用户fd,uid关联
         $this->handleUserAndFd($uid, $request->fd);
         // websocket握手连接算法验证
         $secWebSocketKey = $request->header['sec-websocket-key'];
         $patten = '#^[+/0-9A-Za-z]{21}[AQgw]==$#';
         if (0 === preg_match($patten, $secWebSocketKey) || 16 !== strlen(base64_decode($secWebSocketKey))) {
-            $response->end();
+            $response->status(401);
+            $response->header('message', 'key fail');
             return false;
         }
-        //XazMS4NAEMiMcWyNqFRJTw==
         echo 'onHandShake, fd:' . $request->fd . ', uid:' . $uid . PHP_EOL;
-        $key = base64_encode(sha1($request->header['sec-websocket-key'] . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11', true));
+        //返回加密验证串Sec-WebSocket-Accept
+        $acceptKey = base64_encode(sha1($request->header['sec-websocket-key'] . self::SIGN_KEY, true));
         $headers = [
             'Upgrade' => 'websocket',
             'Connection' => 'Upgrade',
-            'Sec-WebSocket-Accept' => $key,
+            'Sec-WebSocket-Accept' => $acceptKey,
             'Sec-WebSocket-Version' => '13',
         ];
-        // WebSocket connection to 'ws://127.0.0.1:9502/'
-        // failed: Error during WebSocket handshake:
-        // Response must not include 'Sec-WebSocket-Protocol' header if not present in request: websocket
+        //如果在request: websocket中没有出现，响应不能包含'Sec-WebSocket-Protocol'报头
         if (isset($request->header['sec-websocket-protocol'])) {
             $headers['Sec-WebSocket-Protocol'] = $request->header['sec-websocket-protocol'];
         }
