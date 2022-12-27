@@ -2,18 +2,17 @@
 
 namespace module\controllers;
 
+use module\services\ChatService;
+
 class Room extends Controller
 {
+
     //创建房间
     public function create()
     {
-
-    }
-
-    //加入房间
-    public function join()
-    {
-
+        $this->checkUid();
+        $chatId = (new ChatService())->createRoom($this->uid);
+        return ['chat_id' => $chatId];
     }
 
 }

@@ -2,6 +2,7 @@
 
 namespace module\controllers;
 
+use module\services\UserService;
 use Swoole\WebSocket\Server;
 
 class Controller
@@ -14,6 +15,10 @@ class Controller
     protected $get;
     protected $post;
     protected $rawContent;
+    /**
+     * @var bool
+     */
+    protected $uid;
 
     public function __construct(Server $server = null, $get = null, $post = null, $rawContent = null, $header = null)
     {
@@ -27,6 +32,16 @@ class Controller
 
     protected function init()
     {
+    }
+
+    protected function checkUid()
+    {
+        $accessToken = $this->get['access_token'] ?? '';
+        if (empty($accessToken)) {
+            throw new \Exception('empty access_token');
+        }
+        $this->uid = (new UserService())->authUser($accessToken);
+        return $this->uid;
     }
 
 }

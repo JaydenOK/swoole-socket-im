@@ -10,6 +10,12 @@ use Swoole\WebSocket\Server;
 
 class SocketService
 {
+    //'single_chat', 'join_group', 'group_chat'
+    const ACTION_SINGLE_CHAT = 'single_chat';
+    const ACTION_JOIN_GROUP = 'join_group';
+    const ACTION_EXIT_GROUP = 'exit_group';
+    const ACTION_GROUP_CHAT = 'group_chat';
+    const ACTION_SERVICE_CHAT = 'service_chat';
 
     const CACHE_PREFIX = 'socket.im.';
 
@@ -35,7 +41,7 @@ class SocketService
     }
 
 
-    //处理用户与连接文件描述符关系
+    //处理用户与连接文件描述符关系，todo，移除群聊uid
     public function removeFd($fd)
     {
         $uid = $this->redisGetFd($fd);
@@ -86,29 +92,38 @@ class SocketService
     {
         //定义拉数据格式：{"chat_type":1,"msg_type":"text","msg_id":"","chat_id":"","to_uid":2,"msg":"hello"}
         $uid = $this->redisGetFd($fd);
+        $action = $dataArr['action'] ?? '';
         $toUid = $dataArr['to_uid'] ?? 0;
         $chatId = $dataArr['chat_id'] ?? '';
         $chatType = $dataArr['chat_type'] ?? 0;
-        if ($uid == $dataArr['to_uid']) {
-            return ['message' => 'Cannot send to yourself'];
+        if (!in_array($action, [self::ACTION_SINGLE_CHAT, self::ACTION_JOIN_GROUP, self::ACTION_EXIT_GROUP, self::ACTION_GROUP_CHAT])) {
+            return ['message' => 'unknown action.'];
         }
-        $userService = new UserService();
-        $user = $userService->getUser($toUid);
-        if (empty($user)) {
-            return ['message' => 'user not exist'];
-        }
-        switch ($chatType) {
-            case ChatModel::CHAT_TYPE_SINGLE:
+        $data = [];
+        switch ($action) {
+            case self::ACTION_SINGLE_CHAT:
+                if ($uid == $dataArr['to_uid']) {
+                    return ['message' => 'Cannot send to yourself'];
+                }
+                $userService = new UserService();
+                $user = $userService->getUser($toUid);
+                if (empty($user)) {
+                    return ['message' => 'user not exist'];
+                }
                 $data = $this->sendSingleChat($server, $chatType, $uid, $toUid, $chatId, $dataArr);
                 break;
-            case ChatModel::CHAT_TYPE_SERVICE:
-                $data = $this->sendServiceChat($server, $chatType, $uid, $toUid, $chatId, $dataArr);
+            case self::ACTION_JOIN_GROUP:
+                $data = $this->joinGroup($chatId, $uid);
                 break;
-            case ChatModel::CHAT_TYPE_GROUP:
+            case self::ACTION_EXIT_GROUP:
+                $data = $this->exitGroup($chatId, $uid);
+                break;
+            case self::ACTION_GROUP_CHAT:
                 $data = $this->sendGroupChat($server, $chatType, $uid, $toUid, $chatId, $dataArr);
                 break;
-            default:
-                throw new \Exception('unknown chat type');
+            case self::ACTION_SERVICE_CHAT:
+                //service
+                $data = $this->sendServiceChat($server, $chatType, $uid, $toUid, $chatId, $dataArr);
                 break;
         }
         return $data;
@@ -141,18 +156,6 @@ class SocketService
         return $data;
     }
 
-    private function createChatId($uid, $toUid, $chatType, $shopId = 0)
-    {
-        $queryArr = [
-            $uid,
-            $toUid,
-        ];
-        sort($queryArr);
-        $queryArr[] = $chatType;
-        $queryArr[] = $shopId;
-        return implode('_', $queryArr);
-    }
-
     private function ensureChatId($chatType, $uid, $toUid, $chatId, $shopId = 0)
     {
         $data = [
@@ -165,7 +168,7 @@ class SocketService
         }
         $chat = ChatModel::model()->getOne($data);
         if (empty($chat)) {
-            $chatId = $this->createChatId($uid, $toUid, $chatType, $shopId);
+            $chatId = (new ChatService())->createChatId($chatType, $uid, $toUid, $shopId);
             $data['chat_id'] = $chatId;
             $data['create_time'] = date('Y-m-d H:i:s');
             ChatModel::model()->insertData($data);
@@ -215,8 +218,46 @@ class SocketService
 
     private function sendGroupChat(Server $server, int $chatType, $uid, int $toUid, string $chatId, array $dataArr)
     {
-        return [];
+        $this->addChatMessage($chatType, $uid, $toUid, $chatId, $dataArr['msg_type'], $dataArr['msg']);
+        ChatModel::model()->saveData(
+            ['last_msg' => $dataArr['msg'], 'last_time' => date('Y-m-d H:i:s')],
+            ['chat_id' => $chatId, 'chat_type' => $dataArr['msg_type']]
+        );
+        $groupUidArr = $this->redisClient->getRedis()->sMembers(self::CACHE_PREFIX . $chatId);
+        foreach ($groupUidArr as $itemUid) {
+            //发送在线消息(排除自己)
+            if ($itemUid == $uid) {
+                continue;
+            }
+            $itemFd = $this->redisGetUid($itemUid);
+            //检查连接是否为有效的 WebSocket 客户端连接
+            $isOnline = $server->isEstablished($itemFd);
+            if ($itemFd && $isOnline) {
+                $pushData = ['chat_type' => $chatType, 'chat_id' => $chatId, 'uid' => $itemUid, 'msg_type' => $dataArr['msg_type'], 'msg' => $dataArr['msg']];
+                $server->push($itemFd, json_encode($pushData, JSON_UNESCAPED_UNICODE));
+            } else {
+                //$this->redisDeleteUid($uid);
+            }
+        }
+        $data = ['status' => 1, 'message' => 'ok'];
+        return $data;
     }
 
+    //加入群聊
+    private function joinGroup($chatId, $uid)
+    {
+        $this->redisClient->sAdd(self::CACHE_PREFIX . $chatId, $uid);
+        $data = ['status' => 1, 'message' => 'join group', 'chat_id' => $chatId];
+        echo json_encode($data) . PHP_EOL;
+        return $data;
+    }
 
+    //退出群聊
+    private function exitGroup($chatId, $uid)
+    {
+        $this->redisClient->getRedis()->sRem(self::CACHE_PREFIX . $chatId, $uid);
+        $data = ['status' => 1, 'message' => 'exit group', 'chat_id' => $chatId];
+        echo json_encode($data) . PHP_EOL;
+        return $data;
+    }
 }
