@@ -1,9 +1,12 @@
 ## swoole-socket
-swoole socket im 聊天项目，单聊，群聊，店铺客服，发公告广播消息
+swoole socket im 聊天项目，单聊，群聊，客服，发公告广播消息
 
 #### 功能逻辑
 ```text
+支持单聊，群聊，客服聊天，系统广播，聊天日志记录。  
 
+客服聊天  
+优先原则: 1，先选择上次联系过的且在线的客服。2，随机选择在线客服。  
 ```
 
 #### 版本
@@ -37,9 +40,6 @@ ws://192.168.92.208:9501?access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc
     "to_uid":2,
     "msg":"hello"
 }
-
-5, 发送系统广播消息
-curl -X POST -d "data=这是广播消息abc123" http://192.168.92.208:9501/message/sendPublicMessage?access_token=aaaaaa
 
 ```
 
@@ -76,3 +76,23 @@ ws://192.168.92.208:9501?access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc
 }
 
 ```
+
+
+#### 客服聊天测试
+```shell script
+
+1, 创建群: 
+curl -X POST 192.168.92.208:9501/room/create?access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJpbV9zZXJ2ZXIiLCJpYXQiOjE2NzIxMjg4NDMsImV4cCI6ODY0MDAsInVpZCI6MSwic2NvcGVzIjpbXX0.uDjclECeghaXqlf_HRytmbVFjBlFitbJBgIrKi29qFM
+
+
+```
+
+
+#### 发送系统广播消息
+```shell script
+1, 发送系统广播消息 
+curl -X POST -d "data=这是广播消息abc123" http://192.168.92.208:9501/message/sendPublicMessage?access_token=aaaaaa
+
+```
+
+

@@ -49,6 +49,7 @@ CREATE TABLE `yb_chat` (
 `to_uid` int(11) unsigned NOT NULL DEFAULT '0',
 `shop_id` int(11) unsigned NOT NULL DEFAULT '0',
 `chat_id` varchar(50) NOT NULL DEFAULT '',
+`chat_name` varchar(50) NOT NULL DEFAULT '',
 `chat_type` varchar(50) NOT NULL DEFAULT '',
 `msg_type` varchar(50) NOT NULL DEFAULT '',
 `last_msg` varchar(50) NOT NULL DEFAULT '',

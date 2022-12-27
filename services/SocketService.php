@@ -90,7 +90,7 @@ class SocketService
      */
     public function message(Server $server, $fd, $dataArr)
     {
-        //定义拉数据格式：{"chat_type":1,"msg_type":"text","msg_id":"","chat_id":"","to_uid":2,"msg":"hello"}
+        //定义拉数据格式：{"action":"group_chat","chat_type":2,"msg_type":"text","chat_id":"2_1_221227173250","msg":"hello,everyone."}
         $uid = $this->redisGetFd($fd);
         $action = $dataArr['action'] ?? '';
         $toUid = $dataArr['to_uid'] ?? 0;
@@ -211,11 +211,14 @@ class SocketService
         ChatModel::model()->saveData($data, ['chat_id' => $chatId, 'uid' => $toUid, 'to_uid' => $uid]);
     }
 
+    //客服聊天
+    //优先原则: 1，先选择上次联系过的且在线的店铺客服。2，随机选择在线客服
     private function sendServiceChat(Server $server, int $chatType, $uid, int $toUid, string $chatId, array $dataArr)
     {
         return [];
     }
 
+    //群聊
     private function sendGroupChat(Server $server, int $chatType, $uid, int $toUid, string $chatId, array $dataArr)
     {
         $this->addChatMessage($chatType, $uid, $toUid, $chatId, $dataArr['msg_type'], $dataArr['msg']);
@@ -247,7 +250,7 @@ class SocketService
     private function joinGroup($chatId, $uid)
     {
         $this->redisClient->sAdd(self::CACHE_PREFIX . $chatId, $uid);
-        $data = ['status' => 1, 'message' => 'join group', 'chat_id' => $chatId];
+        $data = ['status' => 1, 'message' => 'join group', 'chat_id' => $chatId, 'uid' => $uid];
         echo json_encode($data) . PHP_EOL;
         return $data;
     }
