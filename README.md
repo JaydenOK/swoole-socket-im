@@ -11,7 +11,7 @@ swoole socket im 聊天项目，单聊，群聊，店铺客服，发公告广播
 - Swoole 4.5.11
 
 
-#### 测试结果
+#### 单聊测试
 
 ```shell script
 1, 启动服务: 
@@ -43,8 +43,8 @@ curl -X POST -d "data=这是广播消息abc123" http://192.168.92.208:9501/messa
 
 ```
 
+#### 群聊测试
 ```shell script
-群聊:
 
 1, 创建群: 
 curl -X POST 192.168.92.208:9501/room/create?access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJpbV9zZXJ2ZXIiLCJpYXQiOjE2NzIxMjg4NDMsImV4cCI6ODY0MDAsInVpZCI6MSwic2NvcGVzIjpbXX0.uDjclECeghaXqlf_HRytmbVFjBlFitbJBgIrKi29qFM
