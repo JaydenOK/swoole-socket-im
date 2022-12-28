@@ -20,7 +20,7 @@ class UserService
             return false;
         }
         $userModel = new UserModel();
-        $user = $userModel->getOne(['uid' => $decodeData['uid']]);
+        $user = $userModel->findOne(['uid' => $decodeData['uid']]);
         if (empty($user)) {
             echo 'user not found:' . $decodeData['uid'] . PHP_EOL;
             return false;
@@ -31,7 +31,7 @@ class UserService
 
     public function getUser($uid)
     {
-        $user = UserModel::model()->getOne(['uid' => $uid]);
+        $user = UserModel::model()->findOne(['uid' => $uid]);
         return $user;
     }
 

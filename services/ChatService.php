@@ -30,6 +30,12 @@ class ChatService
                 $uid,
                 date('ymdHis'),
             ];
+        } else if ($chatType == ChatModel::CHAT_TYPE_SERVICE) {
+            $queryArr = [
+                $chatType,
+                $uid,
+                $shopId,
+            ];
         } else {
             $queryArr = [
                 $uid,

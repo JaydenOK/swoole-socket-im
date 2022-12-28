@@ -2,10 +2,10 @@
 
 namespace module\services;
 
-use module\controllers\User;
 use module\lib\RedisClient;
 use module\models\ChatMessageModel;
 use module\models\ChatModel;
+use module\models\ShopServiceModel;
 use Swoole\WebSocket\Server;
 
 class SocketService
@@ -15,7 +15,8 @@ class SocketService
     const ACTION_JOIN_GROUP = 'join_group';
     const ACTION_EXIT_GROUP = 'exit_group';
     const ACTION_GROUP_CHAT = 'group_chat';
-    const ACTION_SERVICE_CHAT = 'service_chat';
+    const ACTION_SERVICE_REVIEW_CHAT = 'service_review_chat';
+    const ACTION_SERVICE_USER_CHAT = 'service_user_chat';
 
     const CACHE_PREFIX = 'socket.im.';
 
@@ -95,6 +96,7 @@ class SocketService
         $action = $dataArr['action'] ?? '';
         $toUid = $dataArr['to_uid'] ?? 0;
         $chatId = $dataArr['chat_id'] ?? '';
+        $shopId = $dataArr['shop_id'] ?? 0;
         $chatType = $dataArr['chat_type'] ?? 0;
         if (!in_array($action, [self::ACTION_SINGLE_CHAT, self::ACTION_JOIN_GROUP, self::ACTION_EXIT_GROUP, self::ACTION_GROUP_CHAT])) {
             return ['message' => 'unknown action.'];
@@ -121,9 +123,11 @@ class SocketService
             case self::ACTION_GROUP_CHAT:
                 $data = $this->sendGroupChat($server, $chatType, $uid, $toUid, $chatId, $dataArr);
                 break;
-            case self::ACTION_SERVICE_CHAT:
-                //service
-                $data = $this->sendServiceChat($server, $chatType, $uid, $toUid, $chatId, $dataArr);
+            case self::ACTION_SERVICE_USER_CHAT:
+                $data = $this->sendServiceUserChat($server, $chatType, $uid, $chatId, $shopId, $dataArr);
+                break;
+            case self::ACTION_SERVICE_REVIEW_CHAT:
+                $data = $this->sendServiceReviewChat($server, $chatType, $uid, $toUid, $chatId, $shopId, $dataArr);
                 break;
         }
         return $data;
@@ -144,7 +148,7 @@ class SocketService
                 //增加聊天记录chat_message
                 $this->addChatMessage($chatType, $uid, $toUid, $chatId, $dataArr['msg_type'], $dataArr['msg']);
                 //更新关联数据最新状态
-                $this->updateChatStatus($uid, $toUid, $chatId, $dataArr['msg_type'], $dataArr['msg']);
+                $this->updateChatStatus($uid, $toUid, $chatId, 0, $dataArr['msg_type'], $dataArr['msg']);
                 //在线：推送socket更新用户消息
                 if ($toFd && $isOnline) {
                     $pushData = ['chat_type' => $chatType, 'chat_id' => $chatId, 'uid' => $uid, 'msg_type' => $dataArr['msg_type'], 'msg' => $dataArr['msg']];
@@ -166,7 +170,10 @@ class SocketService
         if (!empty($chatId)) {
             $data['chat_id'] = $chatId;
         }
-        $chat = ChatModel::model()->getOne($data);
+        if (!empty($shopId)) {
+            $data['shop_id'] = $shopId;
+        }
+        $chat = ChatModel::model()->findOne($data);
         if (empty($chat)) {
             $chatId = (new ChatService())->createChatId($chatType, $uid, $toUid, $shopId);
             $data['chat_id'] = $chatId;
@@ -177,6 +184,7 @@ class SocketService
                 'to_uid' => $uid,
                 'chat_type' => $chatType,
                 'chat_id' => $chatId,
+                'shop_id' => $shopId,
                 'create_time' => date('Y-m-d H:i:s'),
             ];
             ChatModel::model()->insertData($partnerData);
@@ -201,21 +209,68 @@ class SocketService
         return $id;
     }
 
-    private function updateChatStatus($uid, $toUid, $chatId, $msgType, $msg)
+    private function updateChatStatus($uid, $toUid, $chatId, $shopId = 0, $msgType = 0, $msg = '')
     {
         $data = ['last_msg' => $msg, 'msg_type' => $msgType, 'last_time' => date('Y-m-d H:i:s'), 'is_del' => ChatModel::IS_NOT_DEL];
-        ChatModel::model()->saveData($data, ['chat_id' => $chatId, 'uid' => $uid, 'to_uid' => $toUid]);
+        ChatModel::model()->saveData($data, ['chat_id' => $chatId, 'uid' => $uid, 'to_uid' => $toUid, 'shop_id' => $shopId]);
         //接收人，未读消息+1，前端查看时再重置0
-        $toChat = ChatModel::model()->getOne(['chat_id' => $chatId, 'uid' => $toUid, 'to_uid' => $uid]);
+        $toChat = ChatModel::model()->findOne(['chat_id' => $chatId, 'uid' => $toUid, 'to_uid' => $uid, 'shop_id' => $shopId]);
         $data['unread'] = $toChat['unread'] + 1;
-        ChatModel::model()->saveData($data, ['chat_id' => $chatId, 'uid' => $toUid, 'to_uid' => $uid]);
+        ChatModel::model()->saveData($data, ['chat_id' => $chatId, 'uid' => $toUid, 'to_uid' => $uid, 'shop_id' => $shopId]);
     }
 
-    //客服聊天
-    //优先原则: 1，先选择上次联系过的且在线的店铺客服。2，随机选择在线客服
-    private function sendServiceChat(Server $server, int $chatType, $uid, int $toUid, string $chatId, array $dataArr)
+    //与客服聊天, 优先原则: 1，先选择上次联系过的且在线的店铺客服。2，随机选择在线客服
+    private function sendServiceUserChat(Server $server, int $chatType, $uid, string $chatId, $shopId, array $dataArr)
     {
-        return [];
+        $toUid = 0;
+        //1,查找店铺在线客服uid
+        $services = ShopServiceModel::model()->findAll(['shop_id' => $shopId, 'is_online' => ShopServiceModel::IS_ONLINE]);
+        if (empty($services)) {
+            return ['status' => 0, 'message' => 'No customer service is online at the moment, please try again later'];
+        }
+        $serviceUids = array_column($services, 'uid');
+        //2,查找上次联系的店铺客服
+        $chat = ChatModel::model()::getDb()
+            ->where('chat_type', $chatType)
+            ->where('uid', $uid)
+            ->where('shop_id', $shopId)
+            ->orderBy('id', 'desc')
+            ->get(ChatModel::model()->tableName());
+        if (!empty($chat)) {
+            if (in_array($chat['to_uid'], $serviceUids)) {
+                $toUid = $chat['to_uid'];
+            }
+        }
+        //随机一个
+        if (empty($toUid)) {
+            $toUid = $serviceUids[mt_rand(0, count($serviceUids) - 1)];
+        }
+        //建立客服连接
+        $chatId = (new ChatService())->createChatId($chatType, $uid, $toUid, $shopId);  //店铺客服固定chat_id
+        $chatId = $this->ensureChatId($chatType, $uid, $toUid, $chatId, $shopId);
+        $toFd = $this->redisGetUid($toUid);
+        $isOnline = $server->isEstablished($toFd);
+        $this->addChatMessage($chatType, $uid, $toUid, $chatId, $dataArr['msg_type'], $dataArr['msg']);
+        $this->updateChatStatus($uid, $toUid, $chatId, $shopId, $dataArr['msg_type'], $dataArr['msg']);
+        if ($toFd && $isOnline) {
+            $pushData = ['chat_type' => $chatType, 'shop_id' => $shopId, 'chat_id' => $chatId, 'uid' => $uid, 'msg_type' => $dataArr['msg_type'], 'msg' => $dataArr['msg']];
+            $server->push($toFd, json_encode($pushData, JSON_UNESCAPED_UNICODE));
+        }
+        return ['status' => 1, 'message' => 'ok'];
+    }
+
+    //客服回复
+    private function sendServiceReviewChat(Server $server, int $chatType, $uid, $toUid, string $chatId, int $shopId, array $dataArr)
+    {
+        $toFd = $this->redisGetUid($toUid);
+        $isOnline = $server->isEstablished($toFd);
+        $this->addChatMessage($chatType, $uid, $toUid, $chatId, $dataArr['msg_type'], $dataArr['msg']);
+        $this->updateChatStatus($uid, $toUid, $chatId, $shopId, $dataArr['msg_type'], $dataArr['msg']);
+        if ($toFd && $isOnline) {
+            $pushData = ['chat_type' => $chatType, 'shop_id' => $shopId, 'chat_id' => $chatId, 'uid' => $uid, 'msg_type' => $dataArr['msg_type'], 'msg' => $dataArr['msg']];
+            $server->push($toFd, json_encode($pushData, JSON_UNESCAPED_UNICODE));
+        }
+        return ['status' => 1, 'message' => 'ok'];
     }
 
     //群聊
@@ -263,4 +318,5 @@ class SocketService
         echo json_encode($data) . PHP_EOL;
         return $data;
     }
+
 }

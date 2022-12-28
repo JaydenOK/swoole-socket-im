@@ -81,9 +81,17 @@ ws://192.168.92.208:9501?access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc
 #### 客服聊天测试
 ```shell script
 
-1, 创建群: 
-curl -X POST 192.168.92.208:9501/room/create?access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJpbV9zZXJ2ZXIiLCJpYXQiOjE2NzIxMjg4NDMsImV4cCI6ODY0MDAsInVpZCI6MSwic2NvcGVzIjpbXX0.uDjclECeghaXqlf_HRytmbVFjBlFitbJBgIrKi29qFM
-
+1, 创建店铺yb_shop, 店铺客服yb_shop_service
+2, 连接客服:
+ws://192.168.92.208:9501?access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9
+{
+    "action":"service_chat",
+    "chat_type":3,
+    "msg_type":"text",
+    "chat_id":"3_1_221227173250",
+    "shop_id":2,
+    "msg":"hello, shop service."
+}
 
 ```
 

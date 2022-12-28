@@ -25,7 +25,7 @@ class User extends Controller
         $salt = $this->generateSalt($username);
         $userModel = new UserModel();
         $data = ['username' => $username, 'password' => md5($password . $salt), 'salt' => $salt, 'create_time' => date('Y-m-d H:i:s')];
-        $user = $userModel->getOne(['username' => $username]);
+        $user = $userModel->findOne(['username' => $username]);
         if (!empty($user)) {
             throw new \Exception('register fail: user exist.');
         }
@@ -50,7 +50,7 @@ class User extends Controller
             throw new \Exception('empty username, password');
         }
         $userModel = new UserModel();
-        $user = $userModel->getOne(['username' => $username]);
+        $user = $userModel->findOne(['username' => $username]);
         if (empty($user)) {
             throw new \Exception('user not exist.');
         }

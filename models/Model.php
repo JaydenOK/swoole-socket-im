@@ -72,12 +72,20 @@ class Model
         return $res ? $query->count : 0;
     }
 
-    public function getOne($where)
+    public function findOne($where)
     {
         foreach ($where as $key => $value) {
             self::$db->where($key, $value);
         }
         return self::$db->getOne($this->tableName());
+    }
+
+    public function findAll($where)
+    {
+        foreach ($where as $key => $value) {
+            self::$db->where($key, $value);
+        }
+        return self::$db->get($this->tableName());
     }
 
 }
