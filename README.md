@@ -82,17 +82,29 @@ ws://192.168.92.208:9501?access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc
 ```shell script
 
 1, 创建店铺yb_shop, 店铺客服yb_shop_service
+
 2, 连接客服:
 ws://192.168.92.208:9501?access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9
+与客服聊天:
 {
-    "action":"service_chat",
+    "action":"service_user_chat",
     "chat_type":3,
     "msg_type":"text",
-    "chat_id":"3_1_221227173250",
+    "chat_id":0,
     "shop_id":2,
     "msg":"hello, shop service."
 }
 
+客服回复聊天:
+{
+    "action":"service_review_chat",
+    "chat_type":3,
+    "msg_type":"text",
+    "chat_id":"3_1_2",
+    "shop_id":2,
+    "to_uid":1,
+    "msg":"ok,i get you message."
+}
 ```
 
 

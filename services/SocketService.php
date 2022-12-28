@@ -82,6 +82,18 @@ class SocketService
         return $this->redisClient->delete(self::CACHE_PREFIX . 'fd.' . $fd);
     }
 
+    public static function actionList()
+    {
+        return [
+            self::ACTION_SINGLE_CHAT,
+            self::ACTION_JOIN_GROUP,
+            self::ACTION_EXIT_GROUP,
+            self::ACTION_GROUP_CHAT,
+            self::ACTION_SERVICE_USER_CHAT,
+            self::ACTION_SERVICE_REVIEW_CHAT
+        ];
+    }
+
     /**
      * @param Server $server
      * @param $fd string  发送人描述符
@@ -98,11 +110,12 @@ class SocketService
         $chatId = $dataArr['chat_id'] ?? '';
         $shopId = $dataArr['shop_id'] ?? 0;
         $chatType = $dataArr['chat_type'] ?? 0;
-        if (!in_array($action, [self::ACTION_SINGLE_CHAT, self::ACTION_JOIN_GROUP, self::ACTION_EXIT_GROUP, self::ACTION_GROUP_CHAT])) {
+        if (!in_array($action, self::actionList())) {
             return ['message' => 'unknown action.'];
         }
         $data = [];
         switch ($action) {
+            //单聊
             case self::ACTION_SINGLE_CHAT:
                 if ($uid == $dataArr['to_uid']) {
                     return ['message' => 'Cannot send to yourself'];
@@ -114,18 +127,23 @@ class SocketService
                 }
                 $data = $this->sendSingleChat($server, $chatType, $uid, $toUid, $chatId, $dataArr);
                 break;
+            //加入群聊
             case self::ACTION_JOIN_GROUP:
                 $data = $this->joinGroup($chatId, $uid);
                 break;
+            //退出群聊
             case self::ACTION_EXIT_GROUP:
                 $data = $this->exitGroup($chatId, $uid);
                 break;
+            //群聊
             case self::ACTION_GROUP_CHAT:
                 $data = $this->sendGroupChat($server, $chatType, $uid, $toUid, $chatId, $dataArr);
                 break;
+            //与客服聊
             case self::ACTION_SERVICE_USER_CHAT:
                 $data = $this->sendServiceUserChat($server, $chatType, $uid, $chatId, $shopId, $dataArr);
                 break;
+            //客服回复
             case self::ACTION_SERVICE_REVIEW_CHAT:
                 $data = $this->sendServiceReviewChat($server, $chatType, $uid, $toUid, $chatId, $shopId, $dataArr);
                 break;
@@ -235,7 +253,8 @@ class SocketService
             ->where('uid', $uid)
             ->where('shop_id', $shopId)
             ->orderBy('id', 'desc')
-            ->get(ChatModel::model()->tableName());
+            ->limit(1)
+            ->getOne(ChatModel::model()->tableName());
         if (!empty($chat)) {
             if (in_array($chat['to_uid'], $serviceUids)) {
                 $toUid = $chat['to_uid'];
