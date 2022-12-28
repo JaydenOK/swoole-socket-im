@@ -201,23 +201,14 @@ class SocketServerManager
     {
         try {
             $dispatcher = new Dispatcher($this->server, $request, $response);
-            $data = $dispatcher->dispatch();
-            $return = ['code' => 200, 'message' => 'success', 'data' => $data];
+            $dispatcher->dispatch();
+            $return = ['code' => 200, 'message' => 'success', 'data' => $dispatcher->getResult()];
         } catch (Exception $e) {
             $return = ['code' => 201, 'message' => $e->getMessage(), 'data' => []];
         }
         $response->header('Content-Type', 'application/json;charset=utf-8');
         $response->end(json_encode($return));
         return true;
-        //广播
-        // 接收http请求从get获取message参数的值，给用户推送
-        // $this->server->connections 遍历所有websocket连接用户的fd，给所有用户推送
-//        foreach ($this->server->connections as $fd) {
-//            // 需要先判断是否是正确的websocket连接，否则有可能会push失败
-//            if ($this->server->isEstablished($fd)) {
-//                $this->server->push($fd, $request->get['message']);
-//            }
-//        }
     }
 
     //socket关闭事件

@@ -39,6 +39,7 @@ class Dispatcher
      * @var Response
      */
     private $response;
+    private $result;
 
 
     public function __construct(Server $server, Request $request = null, Response $response = null)
@@ -65,8 +66,12 @@ class Dispatcher
             throw new \Exception("NOT FOUND");
         }
         $controller = new $this->className($this->server, $this->request->get, $this->request->post, $this->request->rawContent(), $this->request->header);
-        $result = call_user_func_array([$controller, $this->action], []);
-        return $result;
+        $this->result = call_user_func_array([$controller, $this->action], []);
+    }
+
+    public function getResult()
+    {
+        return $this->result;
     }
 
     /**
