@@ -1,5 +1,5 @@
 ## swoole-socket
-swoole socket im 聊天项目，单聊，群聊，客服，发公告广播消息
+swoole socket im 聊天项目，单聊，群聊，多店铺后台客服，发公告广播消息
 
 #### 功能逻辑
 ```text
@@ -81,7 +81,7 @@ ws://192.168.92.208:9501?access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc
 #### 客服聊天测试
 ```shell script
 
-1, 创建店铺yb_shop, 店铺客服yb_shop_service
+1, 创建店铺yb_shop表, 店铺客服yb_shop_service表(接口略)
 
 2, 连接客服:
 ws://192.168.92.208:9501?access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9
@@ -110,7 +110,7 @@ ws://192.168.92.208:9501?access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9
 
 #### 发送系统广播消息
 ```shell script
-1, 发送系统广播消息 
+1, 给在线用户, 发送系统广播消息 
 curl -X POST -d "data=这是广播消息abc123" http://192.168.92.208:9501/message/sendPublicMessage?access_token=aaaaaa
 
 ```
