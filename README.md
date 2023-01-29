@@ -27,7 +27,7 @@ curl -X POST -d "username=a&password=123456" http://192.168.92.208:9501/user/reg
 2.2, 登录获取access_token
 curl -X POST -d "username=a&password=123456" http://192.168.92.208:9501/user/login 
 
-3, 连接websocket: 
+3, 携带用户access_token连接websocket: 
 ws://192.168.92.208:9501?access_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJpbV9zZXJ2ZXIiLCJpYXQiOjE2NzE2OTY4NjIsImV4cCI6ODY0MDAsInVpZCI6Miwic2NvcGVzIjpbXX0.yjjVXII1S_HXv2xpZUhT79onfb3q2ijR0lAWgeVVCBA
 
 4, 连接后, 发送socket消息
