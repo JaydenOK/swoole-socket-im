@@ -1,6 +1,6 @@
 <?php
 /**
- *
+ * @author https://github.com/JaydenOK
  */
 
 error_reporting(-1);

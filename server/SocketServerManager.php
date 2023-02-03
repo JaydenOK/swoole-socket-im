@@ -1,5 +1,9 @@
 <?php
-
+/**
+ * Socket服务管理
+ *
+ * @author https://github.com/JaydenOK
+ */
 namespace module\server;
 
 
